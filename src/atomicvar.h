@@ -46,6 +46,24 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// I think this code is responsible for INCR and DECR commands in redis,
+// which does atomic increment or decrement of variable
+// I think the use of atomicIncr, atomicDecr, atomicGet depends on pthread
+// implementation, which can be different for different operating systems
+
+// why __atomic and __sync macros are prefered over mutex??
+// what are __atomic and __sync
+// http://stackoverflow.com/questions/13941385/using-gcc-atomic-builtins
+// these are gcc atomic builtins, more on above link
+//
+// in case of __sync why redis uses __ATOMIC_RELAXED memory model, isn't is week?
+// http://stackoverflow.com/questions/32377201/what-does-atomic-relaxed-mean
+// http://en.cppreference.com/w/cpp/atomic/memory_order
+// https://gcc.gnu.org/onlinedocs/gcc-4.7.2/gcc/_005f_005fatomic-Builtins.html
+
+
+
+
 #include <pthread.h>
 
 #ifndef __ATOMIC_VAR_H

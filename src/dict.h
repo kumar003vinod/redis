@@ -111,6 +111,8 @@ typedef void (dictScanFunction)(void *privdata, const dictEntry *de);
         (entry)->v.val = (_val_); \
 } while(0)
 
+// why do while here??
+
 #define dictSetSignedIntegerVal(entry, _val_) \
     do { (entry)->v.s64 = _val_; } while(0)
 

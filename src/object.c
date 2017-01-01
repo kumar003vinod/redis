@@ -38,6 +38,8 @@
 
 /* ===================== Creation and parsing of objects ==================== */
 
+// redis objects management
+
 robj *createObject(int type, void *ptr) {
     robj *o = zmalloc(sizeof(*o));
     o->type = type;

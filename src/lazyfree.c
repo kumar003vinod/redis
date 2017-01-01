@@ -3,6 +3,13 @@
 #include "atomicvar.h"
 #include "cluster.h"
 
+// I think this file is used for freeing memory that is not used any more.
+// It does this lazily, so it is called lazyfree
+// why mutex initialization like this
+// pthread_mutex_t lazyfree_objects_mutex = PTHREAD_MUTEX_INITIALIZER;
+// http://stackoverflow.com/questions/14320041/pthread-mutex-initializer-vs-pthread-mutex-init-mutex-param
+
+
 static size_t lazyfree_objects = 0;
 pthread_mutex_t lazyfree_objects_mutex = PTHREAD_MUTEX_INITIALIZER;
 

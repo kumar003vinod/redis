@@ -28,6 +28,10 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// this implements a layer on malloc, which is aware of how much memory is
+// allocated so far, can be useful for keeping track of memory stats.
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -161,6 +165,16 @@ void *zrealloc(void *ptr, size_t size) {
 /* Provide zmalloc_size() for systems where this function is not provided by
  * malloc itself, given that in that case we store a header with this
  * information as the first bytes of every allocation. */
+// given a pointer can I find the size of allocated block??
+// it stores allocated size at the start of the allocated memory block
+// and returns the pointer to next location in block
+// how allocation for types like char or long is handled, because the size of
+// memory allocated is always int (or size_t)??
+// https://github.com/CyberGrandChallenge/samples/blob/master/examples/KPRCA_00001/lib/malloc_size.c
+// for using in c
+// https://developer.apple.com/legacy/library/documentation/Darwin/Reference/ManPages/man3/malloc_size.3.html
+// include <malloc/malloc.h>
+
 #ifndef HAVE_MALLOC_SIZE
 size_t zmalloc_size(void *ptr) {
     void *realptr = (char*)ptr-PREFIX_SIZE;
@@ -260,6 +274,7 @@ size_t zmalloc_get_rss(void) {
     if (!x) return 0;
     *x = '\0';
 
+    // parse string and get number
     rss = strtoll(p,NULL,10);
     rss *= page;
     return rss;
@@ -350,6 +365,7 @@ size_t zmalloc_get_private_dirty(long pid) {
     return zmalloc_get_smap_bytes_by_field("Private_Dirty:",pid);
 }
 
+// Cross platform code is dirty, even if in cleanest form
 /* Returns the size of physical memory (RAM) in bytes.
  * It looks ugly, but this is the cleanest way to achive cross platform results.
  * Cleaned up from:

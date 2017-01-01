@@ -122,6 +122,7 @@ struct redisServer server; /* server global state */
  *    Note that commands that may trigger a DEL as a side effect (like SET)
  *    are not fast commands.
  */
+// all commands in redis and corresponding c functions which will be executed
 struct redisCommand redisCommandTable[] = {
     {"module",moduleCommand,-2,"as",0,NULL,1,1,1,0,0},
     {"get",getCommand,2,"rF",0,NULL,1,1,1,0,0},

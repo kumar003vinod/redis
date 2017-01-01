@@ -27,6 +27,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// API for different operations in redis
+
 #include "server.h"
 #include "cluster.h"
 #include <dlfcn.h>
@@ -1233,6 +1235,7 @@ int RM_SelectDb(RedisModuleCtx *ctx, int newid) {
  * key does not exist, NULL is returned. However it is still safe to
  * call RedisModule_CloseKey() and RedisModule_KeyType() on a NULL
  * value. */
+// open and close keys
 void *RM_OpenKey(RedisModuleCtx *ctx, robj *keyname, int mode) {
     RedisModuleKey *kp;
     robj *value;
@@ -1285,6 +1288,8 @@ int RM_KeyType(RedisModuleKey *key) {
     case OBJ_HASH: return REDISMODULE_KEYTYPE_HASH;
     case OBJ_MODULE: return REDISMODULE_KEYTYPE_MODULE;
     default: return 0;
+    // shouldn;t it be unknown key type
+    // although control should never reach to default
     }
 }
 
@@ -1293,6 +1298,24 @@ int RM_KeyType(RedisModuleKey *key) {
  * is the number of elements (just counting keys for hashes).
  *
  * If the key pointer is NULL or the key is empty, zero is returned. */
+// How string object resides in memory and how length is calculated??
+// 
+// list is implemented using quicklish
+// how operations are performed on quicklist??
+// 
+// Set can have two types of encoding
+// 1. int set -> when int types are stored in set
+// 2. hash table set -> when string types are stored in set
+// 
+// zset also has two encodings
+// 1. zip list
+// 2. skip list
+// why ??
+// 
+// hash also s two encodings
+// 1. zip list
+// 2. hash table
+// why??
 size_t RM_ValueLength(RedisModuleKey *key) {
     if (key == NULL || key->value == NULL) return 0;
     switch(key->value->type) {
@@ -1323,7 +1346,8 @@ int RM_DeleteKey(RedisModuleKey *key) {
  * REDISMODULE_NO_EXPIRE is returned. */
 mstime_t RM_GetExpire(RedisModuleKey *key) {
     mstime_t expire = getExpire(key->db,key->key);
-    if (expire == -1 || key->value == NULL) return -1;
+    if (expire == -1 || key->value == NULL) return REDISMODULE_NO_EXPIRE;
+    // why mstime() here??
     expire -= mstime();
     return expire >= 0 ? expire : 0;
 }
@@ -1341,6 +1365,7 @@ int RM_SetExpire(RedisModuleKey *key, mstime_t expire) {
     if (!(key->mode & REDISMODULE_WRITE) || key->value == NULL)
         return REDISMODULE_ERR;
     if (expire != REDISMODULE_NO_EXPIRE) {
+        // why mstime() here??
         expire += mstime();
         setExpire(key->ctx->client,key->db,key->key,expire);
     } else {
@@ -3286,6 +3311,7 @@ int moduleRegisterApi(const char *funcname, void *funcptr) {
     return dictAdd(server.moduleapi, (char*)funcname, funcptr);
 }
 
+// this is where RM_* are presented as RedisModule_*
 #define REGISTER_API(name) \
     moduleRegisterApi("RedisModule_" #name, (void *)(unsigned long)RM_ ## name)
 
@@ -3486,6 +3512,8 @@ void moduleCommand(client *c) {
 
 /* Register all the APIs we export. Keep this function at the end of the
  * file so that's easy to seek it to add new entries. */
+// modules are registered
+// create dictionary of module functions
 void moduleRegisterCoreAPI(void) {
     server.moduleapi = dictCreate(&moduleAPIDictType,NULL);
     REGISTER_API(Alloc);

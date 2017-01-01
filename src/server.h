@@ -82,6 +82,7 @@ typedef long long mstime_t; /* millisecond time type. */
 #define CONFIG_DEFAULT_SERVER_PORT        6379    /* TCP port */
 #define CONFIG_DEFAULT_TCP_BACKLOG       511     /* TCP listen backlog */
 #define CONFIG_DEFAULT_CLIENT_TIMEOUT       0       /* default client timeout: infinite */
+// by default db number that can be selected are from 0 to 15
 #define CONFIG_DEFAULT_DBNUM     16
 #define CONFIG_MAX_LINE    1024
 #define CRON_DBS_PER_CALL 16
@@ -209,6 +210,14 @@ typedef long long mstime_t; /* millisecond time type. */
 #define AOF_WAIT_REWRITE 2    /* AOF waits rewrite to start appending */
 
 /* Client flags */
+// technique for managing multiple states
+// in single integer
+// every power of two represents a state
+// setting a flag (c->flags |= CLIENT_DIRTY_CAS)
+// unsetting a flag (c->flags &= (~CLIENT_DIRTY_CAS))
+// find if a flag is set (c->flags & CLIENT_DIRTY_CAS)
+// technically every bit is representing a state
+// see multi.c for uses
 #define CLIENT_SLAVE (1<<0)   /* This client is a slave server */
 #define CLIENT_MASTER (1<<1)  /* This client is a master server */
 #define CLIENT_MONITOR (1<<2) /* This client is a slave monitor, see MONITOR */

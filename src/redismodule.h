@@ -218,6 +218,9 @@ long long REDISMODULE_API_FUNC(RedisModule_Milliseconds)(void);
 /* This is included inline inside each Redis module. */
 static int RedisModule_Init(RedisModuleCtx *ctx, const char *name, int ver, int apiver) __attribute__((unused));
 static int RedisModule_Init(RedisModuleCtx *ctx, const char *name, int ver, int apiver) {
+    //RedisModuleCtx is by default initialize by REDISMODULE_CTX_INIT
+    // if we see REDISMODULE_CTX_INIT in module.c:118
+    // getapifuncptr is pointer to function RM_GetApi:403
     void *getapifuncptr = ((void**)ctx)[0];
     RedisModule_GetApi = (int (*)(const char *, void *)) (unsigned long)getapifuncptr;
     REDISMODULE_GET_API(Alloc);

@@ -70,6 +70,8 @@ static void _dictReset(dict *ht) {
 }
 
 /* Create a new hash table */
+// create a new hash table
+// what is the initial size of hash table?
 static dict *dictCreate(dictType *type, void *privDataPtr) {
     dict *ht = malloc(sizeof(*ht));
     _dictInit(ht,type,privDataPtr);
