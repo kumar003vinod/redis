@@ -33,6 +33,9 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// this hiredis and redis has different definations for dictionary 
+// implementation, what is the porpose of this hiredis dependency after all????
+
 #include "fmacros.h"
 #include <stdlib.h>
 #include <assert.h>
@@ -50,7 +53,11 @@ static int _dictInit(dict *ht, dictType *type, void *privDataPtr);
 
 /* Generic hash function (a popular one from Bernstein).
  * I tested a few and this was the best. */
+// how it this best hash function ??
+// how was this function tested, how did the tester chose the sample data??
 static unsigned int dictGenHashFunction(const unsigned char *buf, int len) {
+    // buf is the string key
+    // second is the length of the key
     unsigned int hash = 5381;
 
     while (len--)
@@ -72,7 +79,17 @@ static void _dictReset(dict *ht) {
 /* Create a new hash table */
 // create a new hash table
 // what is the initial size of hash table?
+// well it is DICT_HT_INITIAL_SIZE, which is 4
+// well find some other implementation of dictionary and you will
+// probably notice that initial dictionary size is some power
+// of 2, why??
+// well it helps, in dictionary resizing, specially when decreasing the size
+// you think how...
 static dict *dictCreate(dictType *type, void *privDataPtr) {
+    // using variable in it's own defination, really ??
+    // in a way size of does not needs a variable to be fully
+    // defined before using it, because what it really needs is the
+    // variable type only
     dict *ht = malloc(sizeof(*ht));
     _dictInit(ht,type,privDataPtr);
     return ht;
@@ -87,6 +104,8 @@ static int _dictInit(dict *ht, dictType *type, void *privDataPtr) {
 }
 
 /* Expand or create the hashtable */
+// How dictionary is expanded??
+
 static int dictExpand(dict *ht, unsigned long size) {
     dict n; /* the new hashtable */
     unsigned long realsize = _dictNextPower(size), i;
@@ -98,6 +117,13 @@ static int dictExpand(dict *ht, unsigned long size) {
 
     _dictInit(&n, ht->type, ht->privdata);
     n.size = realsize;
+    // if realsize if 64, size mask is 63
+    // which 111111 in binary
+    // when hashfunction returns value greater than 63 for some key
+    // talking bitwise end (&) with sizemask wi hashfunctions will keep
+    // it max to sizemask itself
+    // this is the way to handle key hash value overflow, if hash function
+    // screws up ??
     n.sizemask = realsize-1;
     n.table = calloc(realsize,sizeof(dictEntry*));
 
@@ -117,6 +143,10 @@ static int dictExpand(dict *ht, unsigned long size) {
 
             nextHe = he->next;
             /* Get the new element index */
+            // okay this is surprise
+            // hash function depends on size of hash table??
+            // of course it does!
+            // & means -> will keep h max to n.sizemask
             h = dictHashKey(ht, he->key) & n.sizemask;
             he->next = n.table[h];
             n.table[h] = he;
@@ -267,6 +297,13 @@ static dictIterator *dictGetIterator(dict *ht) {
     return iter;
 }
 
+// get next value from dictionary iterator
+// Looks like it works as following ;-
+// as we know iter->ht->table is array of dictEntry entries
+// 1. This function first finds, the first index in this array which does not
+// contain NULL
+// 2. then it iterates the whole chain at that index. Yes, redis uses chaining
+// for collision resolution
 static dictEntry *dictNext(dictIterator *iter) {
     while (1) {
         if (iter->entry == NULL) {
@@ -294,6 +331,7 @@ static void dictReleaseIterator(dictIterator *iter) {
 /* ------------------------- private functions ------------------------------ */
 
 /* Expand the hash table if needed */
+// dictionary is expanded by double of it's size
 static int _dictExpandIfNeeded(dict *ht) {
     /* If the hash table is empty expand it to the initial size,
      * if the table is "full" dobule its size. */
@@ -305,6 +343,10 @@ static int _dictExpandIfNeeded(dict *ht) {
 }
 
 /* Our hash table capability is a power of two */
+// returning the next perfect power of 2, which is greater than current dict 
+// size
+// Good :- At this level, I would not have thought about this edge case
+// (size being greater than LONG_MAX)
 static unsigned long _dictNextPower(unsigned long size) {
     unsigned long i = DICT_HT_INITIAL_SIZE;
 
@@ -319,6 +361,8 @@ static unsigned long _dictNextPower(unsigned long size) {
 /* Returns the index of a free slot that can be populated with
  * an hash entry for the given 'key'.
  * If the key already exists, -1 is returned. */
+// this one is interesting
+// finding the free slot in ht for a key
 static int _dictKeyIndex(dict *ht, const void *key) {
     unsigned int h;
     dictEntry *he;

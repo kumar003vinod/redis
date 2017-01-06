@@ -78,6 +78,7 @@ typedef struct dict {
     void *privdata;
     dictht ht[2];
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    // TODO: how does rehashing done exactly, in some background thread??
     unsigned long iterators; /* number of iterators currently running */
 } dict;
 

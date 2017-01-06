@@ -39,6 +39,8 @@
 #include <stdarg.h>
 #include <stdint.h>
 
+// TODO: understand how dynamic string library works??
+
 typedef char *sds;
 
 /* Note: sdshdr5 is never used, we just access the flags byte directly.
