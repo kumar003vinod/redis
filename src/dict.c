@@ -97,6 +97,10 @@ uint32_t dictGetHashFunctionSeed(void) {
 // this ycombinator post gives good insight to redis dict implementation
 // https://news.ycombinator.com/item?id=4599232
 // https://en.wikipedia.org/wiki/Hash_table
+// for callback in client implementation, Bernstein hash function is used!
+// server side key hashing MurmurHash is used.
+// TODO: what is the difference between MurmurHash and Bernstein, which makes
+// these suitable for different usecases???
 unsigned int dictGenHashFunction(const void *key, int len) {
     /* 'm' and 'r' are mixing constants generated offline.
      They're not really 'magic', they just happen to work well.  */
@@ -246,6 +250,7 @@ int dictExpand(dict *d, unsigned long size)
  * guaranteed that this function will rehash even a single bucket, since it
  * will visit at max N*10 empty buckets in total, otherwise the amount of
  * work it does would be unbound and the function may block for a long time. */
+// rehashing step, read above comments to know how it works!
 int dictRehash(dict *d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dictIsRehashing(d)) return 0;
@@ -256,6 +261,7 @@ int dictRehash(dict *d, int n) {
         /* Note that rehashidx can't overflow as we are sure there are more
          * elements because ht[0].used != 0 */
         // rehashidx = Number of entries rehashed from hashtable ht[0] to ht[1]
+        // TODO: this will always be true, then why put addert here ??
         assert(d->ht[0].size > (unsigned long)d->rehashidx);
         while(d->ht[0].table[d->rehashidx] == NULL) {
             d->rehashidx++;
@@ -268,6 +274,7 @@ int dictRehash(dict *d, int n) {
 
             nextde = de->next;
             /* Get the index in the new hash table */
+            // add entry to the head of chain, at new index in ht[1]->tabel
             h = dictHashKey(d, de->key) & d->ht[1].sizemask;
             de->next = d->ht[1].table[h];
             d->ht[1].table[h] = de;

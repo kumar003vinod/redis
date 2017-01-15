@@ -62,8 +62,11 @@ struct sharedObjectsStruct shared;
 /* Global vars that are actually used as constants. The following double
  * values are used for double on-disk serialization, and are initialized
  * at runtime to avoid strange compiler optimizations. */
+// TODO: what is on-disk serialization, and how are these values used for that?
+// why strange compiler optimizations are necessary to be avoided?
 
 double R_Zero, R_PosInf, R_NegInf, R_Nan;
+// TODO: these constants are not used, then why decleared ?
 
 /*================================= Globals ================================= */
 
@@ -941,6 +944,9 @@ void updateCachedTime(void) {
  * a macro is used: run_with_period(milliseconds) { .... }
  */
 
+// background jobs
+// TODO: how does redis manages to call this function periodically ?
+// TODO: how does run_with_period work ? (both seems same like question)
 int serverCron(struct aeEventLoop *eventLoop, long long id, void *clientData) {
     int j;
     UNUSED(eventLoop);
@@ -1216,7 +1222,8 @@ void beforeSleep(struct aeEventLoop *eventLoop) {
 }
 
 /* =========================== Server initialization ======================== */
-
+// what shared objects are required, what is the benifit we are getting 
+// from these ??
 void createSharedObjects(void) {
     int j;
 
@@ -1539,6 +1546,7 @@ int restartServer(int flags, mstime_t delay) {
  * max number of clients, the function will do the reverse setting
  * server.maxclients to the value that we can actually handle. */
 void adjustOpenFilesLimit(void) {
+    // rlim_t = Unsigned integer type used for limit values.
     rlim_t maxfiles = server.maxclients+CONFIG_MIN_RESERVED_FDS;
     struct rlimit limit;
 
@@ -1740,6 +1748,7 @@ void resetServerStats(void) {
 void initServer(void) {
     int j;
 
+    // ignoring SIGHUP and SIGPIPE
     signal(SIGHUP, SIG_IGN);
     signal(SIGPIPE, SIG_IGN);
     setupSignalHandlers();
@@ -1751,6 +1760,8 @@ void initServer(void) {
 
     server.pid = getpid();
     server.current_client = NULL;
+    // As I can see, doubly linked list is used for managing many types of info
+    // check how these lists are used, what operations are performed more
     server.clients = listCreate();
     server.clients_to_close = listCreate();
     server.slaves = listCreate();
@@ -1897,6 +1908,7 @@ void populateCommandTable(void) {
         char *f = c->sflags;
         int retval1, retval2;
 
+        // see here for what each flag means.
         while(*f != '\0') {
             switch(*f) {
             case 'w': c->flags |= CMD_WRITE; break;
@@ -3364,6 +3376,7 @@ void redisAsciiArt(void) {
     zfree(buf);
 }
 
+// this is where logic, for shutdown is implemented!
 static void sigShutdownHandler(int sig) {
     char *msg;
 
@@ -3392,8 +3405,13 @@ static void sigShutdownHandler(int sig) {
 
     serverLogFromHandler(LL_WARNING, msg);
     server.shutdown_asap = 1;
+    // TODO: what happens when we set server.shutdown_asap = 1
 }
 
+// The sigaction() system call is used to change the action taken by a
+// process on receipt of a specific signal. 
+// to see how does sigaction work, see 
+// http://man7.org/linux/man-pages/man2/rt_sigaction.2.html
 void setupSignalHandlers(void) {
     struct sigaction act;
 

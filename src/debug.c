@@ -614,10 +614,15 @@ void _serverPanic(const char *msg, const char *file, int line) {
     serverLog(LL_WARNING,"(forcing SIGSEGV in order to print the stack trace)");
 #endif
     serverLog(LL_WARNING,"------------------------------------------------");
+    // forcing SIGSEGV in order to print the stack trace
+    // did not know about this
     *((char*)-1) = 'x';
 }
 
 void bugReportStart(void) {
+    // this only works in single threaded architecture
+    // single threaded architecture makes it possible to do things in simple
+    // way and efficiently
     if (server.bug_report_start == 0) {
         serverLogRaw(LL_WARNING|LL_RAW,
         "\n\n=== REDIS BUG REPORT START: Cut & paste starting from here ===\n");
@@ -625,6 +630,8 @@ void bugReportStart(void) {
     }
 }
 
+// getMcontextEip depends on underlying operating system
+// more platforms we include, more the platforms redis supports
 #ifdef HAVE_BACKTRACE
 static void *getMcontextEip(ucontext_t *uc) {
 #if defined(__APPLE__) && !defined(MAC_OS_X_VERSION_10_6)
@@ -807,6 +814,8 @@ void logRegisters(ucontext_t *uc) {
  * test) or when an API call requires a raw fd.
  *
  * Close it with closeDirectLogFiledes(). */
+// http://codewiki.wikidot.com/c:system-calls:open
+// see open system call c api
 int openDirectLogFiledes(void) {
     int log_to_stdout = server.logfile[0] == '\0';
     int fd = log_to_stdout ?
@@ -982,6 +991,7 @@ void dumpX86Calls(void *addr, size_t len) {
 
 void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
     ucontext_t *uc = (ucontext_t*) secret;
+    // what is eip
     void *eip = getMcontextEip(uc);
     sds infostring, clients;
     struct sigaction act;
@@ -1004,6 +1014,7 @@ void sigsegvHandler(int sig, siginfo_t *info, void *secret) {
 
     /* Log the stack trace */
     serverLogRaw(LL_WARNING|LL_RAW, "\n------ STACK TRACE ------\n");
+    // how does log stack trace works?
     logStackTrace(uc);
 
     /* Log INFO and CLIENT LIST */

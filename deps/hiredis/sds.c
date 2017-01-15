@@ -78,28 +78,44 @@ static inline char sdsReqType(size_t string_size) {
  * You can print the string with printf() as there is an implicit \0 at the
  * end of the string. However the string is binary safe and can contain
  * \0 characters in the middle, as the length is stored in the sds header. */
+// Create new sds string
+// sds strings are binary safe, because length is stored in headers
+// 
 sds sdsnewlen(const void *init, size_t initlen) {
     void *sh;
     sds s;
+    // what type of sds should be used
+    // decided based on the size of the string
     char type = sdsReqType(initlen);
     /* Empty strings are usually created in order to append. Use type 8
      * since type 5 is not good at this. */
+    // TODO: why type 5 is not good at this ??
+    // because it has small space ??
     if (type == SDS_TYPE_5 && initlen == 0) type = SDS_TYPE_8;
     int hdrlen = sdsHdrSize(type);
     unsigned char *fp; /* flags pointer. */
 
+    // s_malloc ??
     sh = s_malloc(hdrlen+initlen+1);
     if (sh == NULL) return NULL;
     if (!init)
         memset(sh, 0, hdrlen+initlen+1);
+    // typecase memory space for string
     s = (char*)sh+hdrlen;
+    // Here I do not undersand the memory model
+    // flag pinter in between header and string, how ??
+    // total allocated memory does not have space for this, does it ??
     fp = ((unsigned char*)s)-1;
+    // hdrlen = for headers
+    // initlen = for initializing string
+    // 1 = for ending string with NULL character
     switch(type) {
         case SDS_TYPE_5: {
             *fp = type | (initlen << SDS_TYPE_BITS);
             break;
         }
         case SDS_TYPE_8: {
+            // typecase header space and set headers
             SDS_HDR_VAR(8,s);
             sh->len = initlen;
             sh->alloc = initlen;
