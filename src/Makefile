@@ -203,6 +203,8 @@ $(REDIS_BENCHMARK_NAME): $(REDIS_BENCHMARK_OBJ)
 $(REDIS_CHECK_AOF_NAME): $(REDIS_CHECK_AOF_OBJ)
 	$(REDIS_LD) -o $@ $^ $(FINAL_LIBS)
 
+# https://linux.die.net/man/1/gcc
+# -D option for macro with defination 1
 dict-benchmark: dict.c zmalloc.c sds.c
 	$(REDIS_CC) $(FINAL_CFLAGS) dict.c zmalloc.c sds.c -D DICT_BENCHMARK_MAIN -o dict-benchmark
 

@@ -34,7 +34,7 @@
  */
 
 // this hiredis and redis has different definations for dictionary 
-// implementation, what is the porpose of this hiredis dependency after all????
+// implementation, what is the purpose of this hiredis dependency after all????
 
 #include "fmacros.h"
 #include <stdlib.h>
@@ -118,7 +118,7 @@ static int dictExpand(dict *ht, unsigned long size) {
     _dictInit(&n, ht->type, ht->privdata);
     n.size = realsize;
     // if realsize if 64, size mask is 63
-    // which 111111 in binary
+    // which is 111111 in binary
     // when hashfunction returns value greater than 63 for some key
     // talking bitwise end (&) with sizemask wi hashfunctions will keep
     // it max to sizemask itself

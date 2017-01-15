@@ -508,6 +508,7 @@ void dictFreeUnlinkedEntry(dict *d, dictEntry *he) {
 }
 
 /* Destroy an entire dictionary */
+// see how callbacks can be implemented in c
 int _dictClear(dict *d, dictht *ht, void(callback)(void *)) {
     unsigned long i;
 
@@ -1010,12 +1011,17 @@ static int _dictExpandIfNeeded(dict *d)
 
     /* If the hash table is empty expand it to the initial size. */
     // base case
+    // initial size if 0, no dictionary initialized
+    // but when first key is added to dict, dictionary is intizlized with
+    // DICT_HT_INITIAL_SIZE size which is 4
     if (d->ht[0].size == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE);
 
     /* If we reached the 1:1 ratio, and we are allowed to resize the hash
      * table (global setting) or we should avoid it but the ratio between
      * elements/buckets is over the "safe" threshold, we resize doubling
      * the number of buckets. */
+    // resize if used slots are equal or more than size if resizing is enabled
+    // if not enabled, resize if used/size is more than a threshold
     if (d->ht[0].used >= d->ht[0].size &&
         (dict_can_resize ||
          d->ht[0].used/d->ht[0].size > dict_force_resize_ratio))
@@ -1026,6 +1032,9 @@ static int _dictExpandIfNeeded(dict *d)
 }
 
 /* Our hash table capability is a power of two */
+// for increasing size of dictionary, get next size
+// why can't take log of size and say it's n
+// and get 2 to the power (n+1)
 static unsigned long _dictNextPower(unsigned long size)
 {
     unsigned long i = DICT_HT_INITIAL_SIZE;
