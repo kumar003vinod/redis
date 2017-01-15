@@ -34,6 +34,8 @@
 #include <stdint.h>
 #include <math.h>
 
+// How does hyperloglog works??
+
 /* The Redis HyperLogLog implementation is based on the following ideas:
  *
  * * The use of a 64 bit hash function as proposed in [1], in order to don't

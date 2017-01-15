@@ -92,6 +92,15 @@ uint32_t dictGetHashFunctionSeed(void) {
  * 2. It will not produce the same results on little-endian and big-endian
  *    machines.
  */
+// MurmurHash
+// https://en.wikipedia.org/wiki/MurmurHash
+// this ycombinator post gives good insight to redis dict implementation
+// https://news.ycombinator.com/item?id=4599232
+// https://en.wikipedia.org/wiki/Hash_table
+// for callback in client implementation, Bernstein hash function is used!
+// server side key hashing MurmurHash is used.
+// TODO: what is the difference between MurmurHash and Bernstein, which makes
+// these suitable for different usecases???
 unsigned int dictGenHashFunction(const void *key, int len) {
     /* 'm' and 'r' are mixing constants generated offline.
      They're not really 'magic', they just happen to work well.  */
@@ -136,6 +145,8 @@ unsigned int dictGenHashFunction(const void *key, int len) {
 }
 
 /* And a case insensitive hash function (based on djb hash) */
+// another hash function, looks like it is same as Bernstein hash function
+// except it is case insensitive
 unsigned int dictGenCaseHashFunction(const unsigned char *buf, int len) {
     unsigned int hash = (unsigned int)dict_hash_function_seed;
 
@@ -167,6 +178,8 @@ dict *dictCreate(dictType *type,
 }
 
 /* Initialize the hash table */
+// Initialize
+// dict has two hash table, for incremental resizing
 int _dictInit(dict *d, dictType *type,
         void *privDataPtr)
 {
@@ -191,6 +204,9 @@ int dictResize(dict *d)
         minimal = DICT_HT_INITIAL_SIZE;
     return dictExpand(d, minimal);
 }
+
+// How to expand dict
+// what is incremental rehashing??
 
 /* Expand or create the hash table */
 int dictExpand(dict *d, unsigned long size)
@@ -234,6 +250,7 @@ int dictExpand(dict *d, unsigned long size)
  * guaranteed that this function will rehash even a single bucket, since it
  * will visit at max N*10 empty buckets in total, otherwise the amount of
  * work it does would be unbound and the function may block for a long time. */
+// rehashing step, read above comments to know how it works!
 int dictRehash(dict *d, int n) {
     int empty_visits = n*10; /* Max number of empty buckets to visit. */
     if (!dictIsRehashing(d)) return 0;
@@ -243,6 +260,8 @@ int dictRehash(dict *d, int n) {
 
         /* Note that rehashidx can't overflow as we are sure there are more
          * elements because ht[0].used != 0 */
+        // rehashidx = Number of entries rehashed from hashtable ht[0] to ht[1]
+        // TODO: this will always be true, then why put addert here ??
         assert(d->ht[0].size > (unsigned long)d->rehashidx);
         while(d->ht[0].table[d->rehashidx] == NULL) {
             d->rehashidx++;
@@ -255,6 +274,7 @@ int dictRehash(dict *d, int n) {
 
             nextde = de->next;
             /* Get the index in the new hash table */
+            // add entry to the head of chain, at new index in ht[1]->tabel
             h = dictHashKey(d, de->key) & d->ht[1].sizemask;
             de->next = d->ht[1].table[h];
             d->ht[1].table[h] = de;
@@ -488,6 +508,7 @@ void dictFreeUnlinkedEntry(dict *d, dictEntry *he) {
 }
 
 /* Destroy an entire dictionary */
+// see how callbacks can be implemented in c
 int _dictClear(dict *d, dictht *ht, void(callback)(void *)) {
     unsigned long i;
 
@@ -656,6 +677,30 @@ void dictReleaseIterator(dictIterator *iter)
 
 /* Return a random entry from the hash table. Useful to
  * implement randomized algorithms */
+// this works in nearly O(1)
+// understand how it works
+// 
+// improvement suggested in ycombinator news post
+// Exactly as you said, it's a decent approximation and with large tables it works well enough, but if there are clusters (long chains) in a bucket those elements have a smaller percentage of chances to be picked.
+// However there is a trick to improve this that I don't use, that is, instead of searching for a non empty bucket, and select a random element from the chain, it is possible to do this, choosing a small M (like M=3):
+// * Find M non-empty buckets.
+// * Pick the bucket among the M buckets, with a chance proportional to the chain length at every bucket.
+// * Finally pick a random element from the bucket.
+// The bigger M, the more accurate the algorithm becomes.
+// For instance in the pathological case you shown where a bucket as one element and another all the rest, this would find the two buckets and then pick the 1 element bucket with a much smaller probability that would adjust the difference in chain length
+// 
+// Good article about hashing
+// https://hughewilliams.com/2012/10/01/five-myths-about-hash-tables/
+// Mapping everything to redis, in order to find how things are done in redis
+// 
+// What hash function does redis use?
+// When does table size hash table size is increased or decreased in hash 
+// table (in terms of %full or %empty)
+// How collision resolution is done in redis? chaining or probing
+// Does redis get benifit from locality of reference, specially when there is
+// collision, like it can be done in chaining by moving accessed element to the
+// front of the list??
+
 dictEntry *dictGetRandomKey(dict *d)
 {
     dictEntry *he, *orighe;
@@ -965,12 +1010,18 @@ static int _dictExpandIfNeeded(dict *d)
     if (dictIsRehashing(d)) return DICT_OK;
 
     /* If the hash table is empty expand it to the initial size. */
+    // base case
+    // initial size if 0, no dictionary initialized
+    // but when first key is added to dict, dictionary is intizlized with
+    // DICT_HT_INITIAL_SIZE size which is 4
     if (d->ht[0].size == 0) return dictExpand(d, DICT_HT_INITIAL_SIZE);
 
     /* If we reached the 1:1 ratio, and we are allowed to resize the hash
      * table (global setting) or we should avoid it but the ratio between
      * elements/buckets is over the "safe" threshold, we resize doubling
      * the number of buckets. */
+    // resize if used slots are equal or more than size if resizing is enabled
+    // if not enabled, resize if used/size is more than a threshold
     if (d->ht[0].used >= d->ht[0].size &&
         (dict_can_resize ||
          d->ht[0].used/d->ht[0].size > dict_force_resize_ratio))
@@ -981,6 +1032,9 @@ static int _dictExpandIfNeeded(dict *d)
 }
 
 /* Our hash table capability is a power of two */
+// for increasing size of dictionary, get next size
+// why can't take log of size and say it's n
+// and get 2 to the power (n+1)
 static unsigned long _dictNextPower(unsigned long size)
 {
     unsigned long i = DICT_HT_INITIAL_SIZE;

@@ -31,6 +31,11 @@
 
 /* ================================ MULTI/EXEC ============================== */
 
+// how multiple commands are execured in transaction ??
+// info -> redis transactions do not rollback,
+// if some command during transaction fails to execute, transaction
+// will continue to execute
+
 /* Client state initialization for MULTI/EXEC */
 void initClientMultiState(client *c) {
     c->mstate.commands = NULL;
@@ -53,6 +58,7 @@ void freeClientMultiState(client *c) {
 }
 
 /* Add a new command into the MULTI commands queue */
+// redis uses realloc for pushing new command to client queue
 void queueMultiCommand(client *c) {
     multiCmd *mc;
     int j;
@@ -60,6 +66,7 @@ void queueMultiCommand(client *c) {
     c->mstate.commands = zrealloc(c->mstate.commands,
             sizeof(multiCmd)*(c->mstate.count+1));
     mc = c->mstate.commands+c->mstate.count;
+    // shouldn't we check if memory was reallocated successfully after realloc
     mc->cmd = c->cmd;
     mc->argc = c->argc;
     mc->argv = zmalloc(sizeof(robj*)*c->argc);
@@ -207,11 +214,19 @@ void watchForKey(client *c, robj *key) {
 
     /* Check if we are already watching for this key */
     listRewind(c->watched_keys,&li);
+    // loops over every watched key in client watched keys and checks if
+    // key is already watched
     while((ln = listNext(&li))) {
         wk = listNodeValue(ln);
         if (wk->db == c->db && equalStringObjects(key,wk->key))
             return; /* Key already watched */
     }
+    // redis is managing two things for every watched key
+    // 1. list of watched keys in client (using list DS)
+    // 2. clients watching a key (using HT ds)
+    // so, whenever a key changes, it sets CLIENT_DIRTY_CAS flag in clients
+    // watching that key, see touchWatchedKey
+    // and also keep track of all watched keys by a client at the same time
     /* This key is not already watched in this DB. Let's add it */
     clients = dictFetchValue(c->db->watched_keys,key);
     if (!clients) {
@@ -258,6 +273,7 @@ void unwatchAllKeys(client *c) {
 
 /* "Touch" a key, so that if this key is being WATCHed by some client the
  * next EXEC will fail. */
+// 
 void touchWatchedKey(redisDb *db, robj *key) {
     list *clients;
     listIter li;

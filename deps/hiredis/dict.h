@@ -48,6 +48,10 @@ typedef struct dictEntry {
     struct dictEntry *next;
 } dictEntry;
 
+// type of dictionary
+// hashFunction => pointer to a hash function -> what hash functions does
+// redis use and why??
+// other parameters??
 typedef struct dictType {
     unsigned int (*hashFunction)(const void *key);
     void *(*keyDup)(void *privdata, const void *key);
@@ -57,15 +61,23 @@ typedef struct dictType {
     void (*valDestructor)(void *privdata, void *obj);
 } dictType;
 
+// a hash table or dictionary defination
 typedef struct dict {
+    // table is an array of dictEntry
     dictEntry **table;
+    // type of dictionary
     dictType *type;
     unsigned long size;
+    // what is size mask ??
     unsigned long sizemask;
+    // number of used entries
     unsigned long used;
+    // what is this pointer is for ??
     void *privdata;
 } dict;
 
+// how does dict iterator works
+// see dictGetIterator
 typedef struct dictIterator {
     dict *ht;
     int index;
@@ -98,6 +110,9 @@ typedef struct dictIterator {
         entry->key = (_key_); \
 } while(0)
 
+// this is where ht->privdata is getting used
+// hash table type has to implement the function to compare two keys if it
+// is complicated than == operator
 #define dictCompareHashKeys(ht, key1, key2) \
     (((ht)->type->keyCompare) ? \
         (ht)->type->keyCompare((ht)->privdata, key1, key2) : \

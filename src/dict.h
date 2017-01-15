@@ -78,6 +78,7 @@ typedef struct dict {
     void *privdata;
     dictht ht[2];
     long rehashidx; /* rehashing not in progress if rehashidx == -1 */
+    // TODO: how does rehashing done exactly, in some background thread??
     unsigned long iterators; /* number of iterators currently running */
 } dict;
 
@@ -110,6 +111,8 @@ typedef void (dictScanFunction)(void *privdata, const dictEntry *de);
     else \
         (entry)->v.val = (_val_); \
 } while(0)
+
+// why do while here??
 
 #define dictSetSignedIntegerVal(entry, _val_) \
     do { (entry)->v.s64 = _val_; } while(0)

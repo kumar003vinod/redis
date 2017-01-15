@@ -30,6 +30,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+// TODO: understand how event driven library works, and how it is used in redis!
+
 #ifndef __AE_H__
 #define __AE_H__
 

@@ -82,6 +82,7 @@ typedef long long mstime_t; /* millisecond time type. */
 #define CONFIG_DEFAULT_SERVER_PORT        6379    /* TCP port */
 #define CONFIG_DEFAULT_TCP_BACKLOG       511     /* TCP listen backlog */
 #define CONFIG_DEFAULT_CLIENT_TIMEOUT       0       /* default client timeout: infinite */
+// by default db number that can be selected are from 0 to 15
 #define CONFIG_DEFAULT_DBNUM     16
 #define CONFIG_MAX_LINE    1024
 #define CRON_DBS_PER_CALL 16
@@ -209,6 +210,14 @@ typedef long long mstime_t; /* millisecond time type. */
 #define AOF_WAIT_REWRITE 2    /* AOF waits rewrite to start appending */
 
 /* Client flags */
+// technique for managing multiple states
+// in single integer
+// every power of two represents a state
+// setting a flag (c->flags |= CLIENT_DIRTY_CAS)
+// unsetting a flag (c->flags &= (~CLIENT_DIRTY_CAS))
+// find if a flag is set (c->flags & CLIENT_DIRTY_CAS)
+// technically every bit is representing a state
+// see multi.c for uses
 #define CLIENT_SLAVE (1<<0)   /* This client is a slave server */
 #define CLIENT_MASTER (1<<1)  /* This client is a master server */
 #define CLIENT_MONITOR (1<<2) /* This client is a slave monitor, see MONITOR */
@@ -429,6 +438,8 @@ typedef long long mstime_t; /* millisecond time type. */
 /* We can print the stacktrace, so our assert is defined this way: */
 #define serverAssertWithInfo(_c,_o,_e) ((_e)?(void)0 : (_serverAssertWithInfo(_c,_o,#_e,__FILE__,__LINE__),_exit(1)))
 #define serverAssert(_e) ((_e)?(void)0 : (_serverAssert(#_e,__FILE__,__LINE__),_exit(1)))
+
+// How does server panic work ??
 #define serverPanic(_e) _serverPanic(#_e,__FILE__,__LINE__),_exit(1)
 
 /*-----------------------------------------------------------------------------
@@ -584,6 +595,7 @@ struct evictionPoolEntry; /* Defined in evict.c */
 /* Redis database representation. There are multiple databases identified
  * by integers from 0 (the default database) up to the max configured
  * database. The database number is the 'id' field in the structure. */
+// a redis database parameters
 typedef struct redisDb {
     dict *dict;                 /* The keyspace for this DB */
     dict *expires;              /* Timeout of keys with a timeout set */
@@ -843,6 +855,7 @@ struct clusterState;
 #define CHILD_INFO_TYPE_RDB 0
 #define CHILD_INFO_TYPE_AOF 1
 
+// structure defining redis server properties
 struct redisServer {
     /* General */
     pid_t pid;                  /* Main process pid. */
@@ -855,9 +868,13 @@ struct redisServer {
     dict *orig_commands;        /* Command table before command renaming. */
     aeEventLoop *el;
     unsigned lruclock:LRU_BITS; /* Clock for LRU eviction */
+    // : -> whatever value we assign to lruclock, we will consider only most
+    // siginificant LRU_BITS number of bits
+    // TODO: why this is required ??
     int shutdown_asap;          /* SHUTDOWN needed ASAP */
     int activerehashing;        /* Incremental rehash in serverCron() */
     char *requirepass;          /* Pass for AUTH command, or NULL */
+    // TODO: How passwords are managed and matched by redis??
     char *pidfile;              /* PID file path */
     int arch_bits;              /* 32 or 64 depending on sizeof(long) */
     int cronloops;              /* Number of times the cron function run */
@@ -872,6 +889,7 @@ struct redisServer {
     int port;                   /* TCP listening port */
     int tcp_backlog;            /* TCP listen() backlog */
     char *bindaddr[CONFIG_BINDADDR_MAX]; /* Addresses we should bind to */
+    // TODO: understand how bind and listening on port works in c ??
     int bindaddr_count;         /* Number of addresses in server.bindaddr[] */
     char *unixsocket;           /* UNIX socket path */
     mode_t unixsocketperm;      /* UNIX socket permission */
@@ -881,20 +899,26 @@ struct redisServer {
     int cfd[CONFIG_BINDADDR_MAX];/* Cluster bus listening socket */
     int cfd_count;              /* Used slots in cfd[] */
     list *clients;              /* List of active clients */
+    // TODO: understand client structure and how it works!
     list *clients_to_close;     /* Clients to close asynchronously */
     list *clients_pending_write; /* There is to write or install handler. */
     list *slaves, *monitors;    /* List of slaves and MONITORs */
     client *current_client; /* Current client, only used on crash report */
     int clients_paused;         /* True if clients are currently paused */
+    // TODO: why will clients be paused?
     mstime_t clients_pause_end_time; /* Time when we undo clients_paused */
     char neterr[ANET_ERR_LEN];   /* Error buffer for anet.c */
     dict *migrate_cached_sockets;/* MIGRATE cached sockets */
     uint64_t next_client_id;    /* Next client unique ID. Incremental. */
+    //TODO: see how it is used when clients connets to server ?
+    // are connection requests handled parallelly or serially ?
     int protected_mode;         /* Don't accept external connections. */
     /* RDB / AOF loading information */
     int loading;                /* We are loading data from disk if true */
     off_t loading_total_bytes;
     off_t loading_loaded_bytes;
+    // what is off_t ?
+    // http://stackoverflow.com/questions/10634629/what-are-the-usage-differences-between-size-t-and-off-t
     time_t loading_start_time;
     off_t loading_process_events_interval_bytes;
     /* Fast pointers to often looked up command */
@@ -924,6 +948,7 @@ struct redisServer {
     long long stat_net_output_bytes; /* Bytes written to network. */
     size_t stat_rdb_cow_bytes;      /* Copy on write bytes during RDB saving. */
     size_t stat_aof_cow_bytes;      /* Copy on write bytes during AOF rewrite. */
+    // TODO: understand how stats are updated ?
     /* The following two are used to track instantaneous metrics, like
      * number of operations per second, network traffic. */
     struct {
@@ -937,10 +962,12 @@ struct redisServer {
     int maxidletime;                /* Client timeout in seconds */
     int tcpkeepalive;               /* Set SO_KEEPALIVE if non-zero. */
     int active_expire_enabled;      /* Can be disabled for testing purposes. */
+    // TODO: what is active expire ?
     size_t client_max_querybuf_len; /* Limit for client query buffer length */
     int dbnum;                      /* Total number of configured DBs */
     int supervised;                 /* 1 if supervised, 0 otherwise. */
     int supervised_mode;            /* See SUPERVISED_* */
+    // TODO: supervised ?
     int daemonize;                  /* True if running as a daemon */
     clientBufferLimitsConfig client_obuf_limits[CLIENT_TYPE_OBUF_COUNT];
     /* AOF persistence */

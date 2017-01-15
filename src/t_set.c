@@ -33,6 +33,10 @@
  * Set Commands
  *----------------------------------------------------------------------------*/
 
+// implementation of set data type
+// internally set uses dictionary if data type is string
+// otherwise integer set
+
 void sunionDiffGenericCommand(client *c, robj **setkeys, int setnum,
                               robj *dstkey, int op);
 
